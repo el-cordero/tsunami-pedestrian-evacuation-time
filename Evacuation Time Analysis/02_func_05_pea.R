@@ -2,7 +2,7 @@
 ### Runs a PEA on files
 
 # requires:
-# library: terra, fields, raster, sf, movecost, gdistance
+# library: terra, fields, leastcostpath
 
 # area.evac <- the entire evacuation zone (zono de desalojo)
 # rds <- roads
@@ -12,7 +12,7 @@
 # rs <- resolution
 
 pa_grid <- function(area.evac, dem, rds, grid.evac, 
-                    municipality,crs, rs=1){
+                    municipality,fraction,crs, rs=1){
   # municipality-specific evac zone
   area.evac <- project(area.evac,crs(dem))
   area.study <- area.evac[area.evac$Municipio == municipality,]
@@ -58,9 +58,9 @@ pa_grid <- function(area.evac, dem, rds, grid.evac,
   
   # extract a random sample from the road points
   set.seed(23401)
-  if (length(rds.pnts) < 150){
+  if (length(rds.pnts) < fraction){
     fraction <- length(rds.pnts)
-  } else {fraction <- 150}
+  } else {fraction <- fraction}
   rds.pnts <- sample(rds.pnts,fraction)
 
   # create a roads from the rds buffer and grid evac zone

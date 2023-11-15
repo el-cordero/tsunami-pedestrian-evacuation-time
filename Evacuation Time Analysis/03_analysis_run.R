@@ -69,6 +69,14 @@ missing.dems <- c('dem_canovanas.tif','dem_ceiba.tif','dem_humacao.tif',
 dem.list <- dem.list[!dem.list %in% missing.dems]
 
 municipalities <- sort(unique(area.evac$Municipio))
+fraction <- 1:length(municipalities) 
+
+for (i in 1:length(municipalities)){
+  if (municipalities[i] == c('Arecibo')){
+    fraction[i] <- 400
+  } else (fraction[i] <- 150)
+}
+
 missing.muni <- c("Canóvanas","Ceiba","Humacao","Quebradillas","Vieques","Yauco")
 municipalities <- municipalities[!municipalities %in% missing.muni]
 
@@ -78,24 +86,25 @@ for (i in c(1:length(dem.list))){
   print(paste0(municipalities[i],' processing started'))
   print(Sys.time())
   dem <- rast(paste0(path.r,dem.list[i]))
-  pa.grid <- pa_grid(area.evac, dem, rds, grid.evac, municipalities[i], crs)
+  pa.grid <- pa_grid(area.evac, dem, rds, grid.evac, 
+                     municipalities[i],fraction[i], crs)
   file.name <- paste0(path.v,paste0('Pedestrian/',paste0(municipalities[i]),'.shp'))
   writeVector(pa.grid,file.name,overwrite=TRUE)
   print(paste0(municipalities[i],' was finished processing'))
   print(Sys.time())
 }
 
-# Run on the pa grid function on each municipality
-for (i in c(3:length(missing.dems))){
-  print(paste0(missing.muni[i],' processing started'))
-  print(Sys.time())
-  dem <- rast(paste0(path.r,missing.dems[i]))
-  pa.grid <- pa_grid(area.evac, dem, rds, grid.evac, missing.muni[i], crs)
-  file.name <- paste0(path.v,paste0('Pedestrian/',paste0(missing.muni[i]),'.shp'))
-  writeVector(pa.grid,file.name,overwrite=TRUE)
-  print(paste0(missing.muni[i],' was finished processing'))
-  print(Sys.time())
-}
+# # Run on the pa grid function on each municipality
+# for (i in c(3:length(missing.dems))){
+#   print(paste0(missing.muni[i],' processing started'))
+#   print(Sys.time())
+#   dem <- rast(paste0(path.r,missing.dems[i]))
+#   pa.grid <- pa_grid(area.evac, dem, rds, grid.evac, missing.muni[i], crs)
+#   file.name <- paste0(path.v,paste0('Pedestrian/',paste0(missing.muni[i]),'.shp'))
+#   writeVector(pa.grid,file.name,overwrite=TRUE)
+#   print(paste0(missing.muni[i],' was finished processing'))
+#   print(Sys.time())
+# }
 
 # combine files
 all.names = list.files(path = paste0(path.v,'Pedestrian/'),full.names=FALSE)
