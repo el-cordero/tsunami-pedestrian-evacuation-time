@@ -77,21 +77,23 @@ for (i in 1:length(municipalities)){
   } else (fraction[i] <- 150)
 }
 
+fraction <- 1500
+
 missing.muni <- c("Canóvanas","Ceiba","Humacao","Quebradillas","Vieques","Yauco")
 municipalities <- municipalities[!municipalities %in% missing.muni]
 
 # Run on the pa grid function on each municipality
 for (i in c(1:length(dem.list))){
 # for (i in c(13,37)){
-  print(paste0(municipalities[i],' processing started'))
-  print(Sys.time())
+  startTime <- Sys.time()
   dem <- rast(paste0(path.r,dem.list[i]))
   pa.grid <- pa_grid(area.evac, dem, rds, grid.evac, 
-                     municipalities[i],fraction[i], crs)
+                     municipalities[i],fraction, crs)
   file.name <- paste0(path.v,paste0('Pedestrian/',paste0(municipalities[i]),'.shp'))
   writeVector(pa.grid,file.name,overwrite=TRUE)
-  print(paste0(municipalities[i],' was finished processing'))
-  print(Sys.time())
+  endTime <- Sys.time()
+  cat(paste(municipalities,startTime,endTime,sep=','), 
+      file = paste0(municipalities,".txt"))
 }
 
 # # Run on the pa grid function on each municipality
