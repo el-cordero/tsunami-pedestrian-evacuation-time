@@ -1,7 +1,7 @@
 ### Analysis - Run PEAT
 ### PEAT created by Elvin Cordero in R
 
-# requires:
+## requires:
 
 # for macOS
 # ### load libraries
