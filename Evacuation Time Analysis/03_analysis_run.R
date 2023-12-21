@@ -92,8 +92,8 @@ for (i in c(1:length(dem.list))){
   file.name <- paste0(path.v,paste0('Pedestrian/',paste0(municipalities[i]),'.shp'))
   writeVector(pa.grid,file.name,overwrite=TRUE)
   endTime <- Sys.time()
-  cat(paste(municipalities,startTime,endTime,sep=','), 
-      file = paste0(municipalities,".txt"))
+  cat(paste(municipalities[i],startTime,endTime,sep=','), 
+      file = paste0(municipalities[i],".txt"))
 }
 
 # # Run on the pa grid function on each municipality
