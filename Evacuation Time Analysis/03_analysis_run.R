@@ -89,7 +89,7 @@ for (i in c(1:length(dem.list))){
   dem <- rast(paste0(path.r,dem.list[i]))
   pa.grid <- pa_grid(area.evac, dem, rds, grid.evac, 
                      municipalities[i],fraction, crs)
-  file.name <- paste0(path.v,paste0('Pedestrian/',paste0(municipalities[i]),'.shp'))
+  file.name <- paste0(path.v,'Pedestrian/',municipalities[i],'.shp')
   writeVector(pa.grid,file.name,overwrite=TRUE)
   endTime <- Sys.time()
   outputMsg <- paste(municipalities[i],startTime,endTime,sep=',')
