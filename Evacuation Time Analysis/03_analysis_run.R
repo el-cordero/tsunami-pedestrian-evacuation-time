@@ -2,17 +2,16 @@
 ### PEAT created by Elvin Cordero in R
 
 ## requires:
-
 # for macOS
 # ### load libraries
-source('~/Documents/Projects/PRSN/Data/R/Pedestrian Analysis/01_libraries.R')
+source('~/Documents/Projects/PRSN/Data/R/Evacuation Time Analysis/01_libraries.R')
 # 
 # ### load functions
-source('~/Documents/Projects/PRSN/Data/R/Pedestrian Analysis/02_func_01_region_area.R')
-source('~/Documents/Projects/PRSN/Data/R/Pedestrian Analysis/02_func_02_escape_points.R')
-source('~/Documents/Projects/PRSN/Data/R/Pedestrian Analysis/02_func_03_minimum_distance.R')
-source('~/Documents/Projects/PRSN/Data/R/Pedestrian Analysis/02_func_04_distance_grid.R')
-source('~/Documents/Projects/PRSN/Data/R/Pedestrian Analysis/02_func_05_pea.R')
+source('~/Documents/Projects/PRSN/Data/R/Evacuation Time Analysis/02_func_01_region_area.R')
+source('~/Documents/Projects/PRSN/Data/R/Evacuation Time Analysis/02_func_02_escape_points.R')
+source('~/Documents/Projects/PRSN/Data/R/Evacuation Time Analysis/02_func_03_minimum_distance.R')
+source('~/Documents/Projects/PRSN/Data/R/Evacuation Time Analysis/02_func_04_distance_grid.R')
+source('~/Documents/Projects/PRSN/Data/R/Evacuation Time Analysis/02_func_05_pea.R')
 
 # path inputs
 path.in <- '~/Documents/Projects/GIS/'
