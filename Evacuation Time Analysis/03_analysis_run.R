@@ -18,28 +18,41 @@ path.in <- '~/Documents/Projects/GIS/'
 path.r <- paste0(path.in,'Raster/dem2/')
 path.v <- paste0(path.in,'Vector/')
 
-# for windows
-# ### load libraries
-# source('~/Projects/Data/R/Pedestrian Analysis/01_libraries.R')
-#
-# ### load functions
-# source('~/Projects/Data/R/Pedestrian Analysis/02_func_01_region_area.R')
-# source('~/Projects/Data/R/Pedestrian Analysis/02_func_02_escape_points.R')
-# source('~/Projects/Data/R/Pedestrian Analysis/02_func_03_minimum_distance.R')
-# source('~/Projects/Data/R/Pedestrian Analysis/02_func_04_distance_grid.R')
-# source('~/Projects/Data/R/Pedestrian Analysis/02_func_05_pea.R')
-
-# # path inputs
-# path.in <- '~/Projects/Data/GIS/'
-# path.r <- paste0(path.in,'Raster/Pedestrian/')
-# path.v <- paste0(path.in,'Vector/base/')
-
 # coordinate reference system
 crs <- 'epsg:3920'
 
 # evacuation area
 area.evac <- vect(paste0(path.v,'poly_zono_desalojo.shp'))
 area.evac <- project(area.evac,crs)
+
+# split cabo rojo into divisions 
+cabo.rojo <- vect(paste0(path.v,'caborojo_divisions.shp'))
+cabo.rojo <- project(cabo.rojo,crs)
+
+# add Municipio field
+cabo.rojo$Municipio <- paste0('Cabo Rojo_',cabo.rojo$id)
+
+# make a template vector using evacuation area
+cabo.rojo.mask <- area.evac[1]
+cabo.rojo.mask <- cabo.rojo.mask[-1]
+
+# crop evacuation area by cabo rojo divisions
+for (i in 1:length(cabo.rojo)){
+  cr <- crop(area.evac[area.evac$Municipio=='Cabo Rojo',],
+             cabo.rojo[i])
+  cr$Municipio <- cabo.rojo[i]$Municipio
+  cr$Municipio2 <- 'Cabo Rojo'
+  cabo.rojo.mask <- rbind(cabo.rojo.mask,cr)
+}
+
+# add new field to differentiate the new Cabo Rojo divisions
+area.evac$Municipio2 <- area.evac$Municipio
+
+# remove cabo rojo
+area.evac <- area.evac[area.evac$Municipio!='Cabo Rojo',]
+
+# add in cabo rojo
+area.evac <- rbind(area.evac,cabo.rojo.mask)
 
 # roads
 rds <- vect(paste0(path.v,'road_pr.shp'))
@@ -63,27 +76,26 @@ dem.list <- c('dem_aguada.tif','dem_aguadilla.tif','dem_anasco.tif','dem_arecibo
 'dem_riogrande.tif','dem_salinas.tif','dem_sanjuan.tif','dem_santaisabel.tif',
 'dem_toabaja.tif','dem_vegaalta.tif','dem_vegabaja.tif','dem_vieques.tif',
 'dem_yabucoa.tif', 'dem_yauco.tif')
-missing.dems <- c('dem_canovanas.tif','dem_ceiba.tif','dem_humacao.tif',
+
+# these are dems that will not be used or will
+# be used individually
+missing.dems <- c('dem_caborojo.tif','dem_canovanas.tif','dem_ceiba.tif','dem_humacao.tif',
                   'dem_quebradillas.tif','dem_vieques.tif','dem_yauco.tif')
 dem.list <- dem.list[!dem.list %in% missing.dems]
 
-municipalities <- sort(unique(area.evac$Municipio))
-fraction <- 1:length(municipalities) 
-
-for (i in 1:length(municipalities)){
-  if (municipalities[i] == c('Arecibo')){
-    fraction[i] <- 400
-  } else (fraction[i] <- 150)
-}
-
-fraction <- 1500
-
-missing.muni <- c("Canóvanas","Ceiba","Humacao","Quebradillas","Vieques","Yauco")
+# make a list of the municipalities
+# remove the municipalities removed from the raster list
+missing.muni <- c("Cabo Rojo","Canóvanas","Ceiba","Humacao","Quebradillas","Vieques","Yauco")
 municipalities <- municipalities[!municipalities %in% missing.muni]
+municipalities <- sort(unique(area.evac$Municipio))
+
+# What fraction of road points to use?
+fraction <- 1000 # 1000 was used for all municipalities except
+fraction <- 700 # cabo rojo
+fraction <- 1500 # arecibo?
 
 # Run on the pa grid function on each municipality
-for (i in c(1:length(dem.list))){
-# for (i in c(13,37)){
+for (i in 1:length(dem.list)){
   startTime <- Sys.time()
   dem <- rast(paste0(path.r,dem.list[i]))
   pa.grid <- pa_grid(area.evac, dem, rds, grid.evac, 
@@ -96,17 +108,30 @@ for (i in c(1:length(dem.list))){
   cat(outputMsg, file = paste0(municipalities[i],".txt"))
 }
 
-# # Run on the pa grid function on each municipality
-# for (i in c(3:length(missing.dems))){
-#   print(paste0(missing.muni[i],' processing started'))
-#   print(Sys.time())
-#   dem <- rast(paste0(path.r,missing.dems[i]))
-#   pa.grid <- pa_grid(area.evac, dem, rds, grid.evac, missing.muni[i], crs)
-#   file.name <- paste0(path.v,paste0('Pedestrian/',paste0(missing.muni[i]),'.shp'))
-#   writeVector(pa.grid,file.name,overwrite=TRUE)
-#   print(paste0(missing.muni[i],' was finished processing'))
-#   print(Sys.time())
-# }
+# Run on the pa grid function on Cabo Rojo
+
+dem <- rast(paste0(path.r,'dem_caborojo.tif'))
+for (i in 1:length(cabo.rojo$Municipio)){
+  # for (i in c(13,37)){
+  startTime <- Sys.time()
+  pa.grid <- pa_grid(area.evac, dem, rds, grid.evac,
+                     cabo.rojo$Municipio[i],fraction, crs)
+  file.name <- paste0(path.v,'Pedestrian/',cabo.rojo$Municipio[i],'.shp')
+  writeVector(pa.grid,file.name,overwrite=TRUE)
+  endTime <- Sys.time()
+  outputMsg <- paste(cabo.rojo$Municipio[i],startTime,endTime,sep=',')
+  print(outputMsg)
+  cat(outputMsg, file = paste0(cabo.rojo$Municipio[i],".txt"))
+}
+
+# run the analysis for Cabo Rojo only
+cr.grid <- vect(paste0(path.v,'Pedestrian/',cabo.rojo$Municipio[1],'.shp'))
+for (i in 2:length(cabo.rojo$Municipio)){
+  cr.grid.2 <- vect(paste0(path.v,'Pedestrian/',cabo.rojo$Municipio[i],'.shp'))
+  cr.grid <- rbind(cr.grid,cr.grid.2)
+}
+file.name <- paste0(path.v,'Pedestrian/','Cabo Rojo','.shp')
+writeVector(cr.grid,file.name,overwrite=TRUE)
 
 # combine files
 all.names = list.files(path = paste0(path.v,'Pedestrian/'),full.names=FALSE)
