@@ -45,7 +45,7 @@ peat.results[peat.results$Municipio %in%
 missing <- data.frame(cbind(c('Ceiba', 'Vieques'),
                       c(NA,NA), c(NA,NA), c(NA,NA), c(NA,NA)))
 names(missing) <- names(peat.results)
-peat.results <- rbind(peat.results[-1,],missing)
+peat.results <- rbind(peat.results,missing)
 peat.results <- peat.results[order(peat.results$Municipio),]
 
 # merge summary dataframes
@@ -55,6 +55,6 @@ peat.results$area <- round(results$area,1)
 peat.results <- peat.results[,c(1,6,2:5)]
 
 # save as csv
-write.csv(peat.results, '~/Documents/Projects/PRSN/Data/R/Pedestrian Analysis/peat_results.csv',
+write.csv(peat.results, '~/Documents/Projects/PRSN/Data/R/Evacuation Time Analysis/peat_results.csv',
           row.names = FALSE)
 

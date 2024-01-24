@@ -7,6 +7,7 @@
 source('~/Documents/Projects/PRSN/Data/R/Evacuation Time Analysis/01_libraries.R')
 # 
 # ### load functions
+source('~/Documents/Projects/PRSN/Data/R/Evacuation Time Analysis/02_func_00_region_area.R')
 source('~/Documents/Projects/PRSN/Data/R/Evacuation Time Analysis/02_func_01_region_area.R')
 source('~/Documents/Projects/PRSN/Data/R/Evacuation Time Analysis/02_func_02_escape_points.R')
 source('~/Documents/Projects/PRSN/Data/R/Evacuation Time Analysis/02_func_03_minimum_distance.R')
@@ -20,14 +21,18 @@ path.v <- paste0(path.in,'Vector/')
 
 # coordinate reference system
 crs <- 'epsg:3920'
+crs2 <- 'epsg:4326' #wgs 84
 
 # evacuation area
 area.evac <- vect(paste0(path.v,'poly_zono_desalojo.shp'))
-area.evac <- project(area.evac,crs)
+
+# grid evacuation area
+# grid <- evacuation_grid(area.evac, 50)
+# writeVector(grid,paste0(path.v,'poly_grid.shp'))
+grid.evac <- vect(paste0(path.v,'poly_grid.shp'))
 
 # split cabo rojo into divisions 
 cabo.rojo <- vect(paste0(path.v,'caborojo_divisions.shp'))
-cabo.rojo <- project(cabo.rojo,crs)
 
 # add Municipio field
 cabo.rojo$Municipio <- paste0('Cabo Rojo_',cabo.rojo$id)
@@ -56,7 +61,6 @@ area.evac <- rbind(area.evac,cabo.rojo.mask)
 
 # roads
 rds <- vect(paste0(path.v,'road_pr.shp'))
-rds <- project(rds,crs)
 rds <- rds[!(rds$highway %in% c('track','path','service',
                                 'footway','cycleway')),]
 
@@ -86,13 +90,13 @@ dem.list <- dem.list[!dem.list %in% missing.dems]
 # make a list of the municipalities
 # remove the municipalities removed from the raster list
 missing.muni <- c("Cabo Rojo","Canóvanas","Ceiba","Humacao","Quebradillas","Vieques","Yauco")
-municipalities <- municipalities[!municipalities %in% missing.muni]
 municipalities <- sort(unique(area.evac$Municipio))
+municipalities <- municipalities[!municipalities %in% missing.muni]
 
 # What fraction of road points to use?
 fraction <- 1000 # 1000 was used for all municipalities except
-fraction <- 700 # cabo rojo
-fraction <- 1500 # arecibo?
+# fraction <- 700 # cabo rojo
+# fraction <- 1500 # arecibo?
 
 # Run on the pa grid function on each municipality
 for (i in 1:length(dem.list)){
@@ -116,12 +120,12 @@ for (i in 1:length(cabo.rojo$Municipio)){
   startTime <- Sys.time()
   pa.grid <- pa_grid(area.evac, dem, rds, grid.evac,
                      cabo.rojo$Municipio[i],fraction, crs)
-  file.name <- paste0(path.v,'Pedestrian/',cabo.rojo$Municipio[i],'.shp')
+  file.name <- paste0(path.v,'Pedestrian/CR/',cabo.rojo$Municipio[i],'.shp')
   writeVector(pa.grid,file.name,overwrite=TRUE)
   endTime <- Sys.time()
   outputMsg <- paste(cabo.rojo$Municipio[i],startTime,endTime,sep=',')
   print(outputMsg)
-  cat(outputMsg, file = paste0(cabo.rojo$Municipio[i],".txt"))
+  cat(outputMsg, file = paste0('Timestamps/',cabo.rojo$Municipio[i],".txt"))
 }
 
 # run the analysis for Cabo Rojo only
@@ -130,6 +134,7 @@ for (i in 2:length(cabo.rojo$Municipio)){
   cr.grid.2 <- vect(paste0(path.v,'Pedestrian/',cabo.rojo$Municipio[i],'.shp'))
   cr.grid <- rbind(cr.grid,cr.grid.2)
 }
+
 file.name <- paste0(path.v,'Pedestrian/','Cabo Rojo','.shp')
 writeVector(cr.grid,file.name,overwrite=TRUE)
 
@@ -139,6 +144,7 @@ all.names <- unlist(strsplit(all.names,'[.]'))
 filetypes <- c("prj","cpg","shp","dbf","shx")
 all.names <- unique(all.names[!all.names %in% filetypes])
 all.names <- paste0(all.names,'.shp')
+all.names <- all.names[all.names != "CR.shp"] # remove CR folder
 
 # open the first file
 pa.grid <- vect(paste0(path.v,paste0('Pedestrian/',all.names[1])))
@@ -149,7 +155,11 @@ for (i in c(2:length(all.names))){
   pa.grid <- rbind(pa.grid,pa.grid.2)
 }
 
+# ? remove 0 Municipality layer?
+pa.grid <- pa.grid[pa.grid$Municipio != "0",]
+
 # save the file into one
 writeVector(pa.grid,paste0(path.v,'PRpeat.shp'),overwrite=TRUE)
 
-tmpFiles(old=TRUE, remove=TRUE)
+pa.grid <- terra::project(pa.grid,crs2)
+writeVector(pa.grid,paste0(path.v,'PRpeatWGS84.shp'),overwrite=TRUE)

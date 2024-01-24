@@ -67,6 +67,7 @@ pa_grid <- function(area.evac, dem, rds, grid.evac,
   grid.evac <- project(grid.evac,crs(dem))
   grid.rds <- intersect(grid.evac, rds.buffer)
   grid.rds <- crop(grid.rds,area.study)
+  grid.rds$Municipio <- municipality
 
   # least cost path analysis
   minDist.pnts <- min_dist(cs, rds.pnts, escape.pnts)
