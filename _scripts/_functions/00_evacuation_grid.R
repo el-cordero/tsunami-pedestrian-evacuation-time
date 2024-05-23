@@ -11,9 +11,9 @@ evacuation_grid <- function(area.evac, res){
   grid.r <- rast(ext=ext(area.evac),crs=crs(area.evac),resolution=res)
   grid.p <- as.polygons(grid.r)
   
-  municipalities <- sort(unique(area.evac$Municipio)) 
-  grid <- crop(grid.p, area.evac,ext=TRUE)
-  grid <- crop(grid, area.evac)
+  # municipalities <- sort(unique(area.evac$Municipio)) 
+  # grid <- crop(grid.p, area.evac,ext=TRUE)
+  grid <- mask(grid.p, area.evac)
 
   return(grid)
 }

@@ -11,8 +11,8 @@
 # crs <- coordinate reference system
 # rs <- resolution
 
-pa_grid <- function(area.evac, dem, rds, grid.evac, 
-                    municipality,fraction,crs, rs=1){
+pa_grid <- function(area.evac, dem, rds, escape.pnts,
+                    municipality,fraction=NULL,crs, rs=1){
   # municipality-specific evac zone
   area.evac <- project(area.evac,crs(dem))
   area.study <- area.evac[area.evac$Municipio == municipality,]
@@ -28,66 +28,77 @@ pa_grid <- function(area.evac, dem, rds, grid.evac,
   dem <- resample(dem,r)
   
   # roads
-  rds <- project(rds,crs(dem))
-  rds <- crop(rds,area.region,ext=TRUE)
+  rds.subset <- project(rds,crs(dem))
+  rds.subset <- crop(rds.subset,area.region,ext=TRUE)
   
-  # produce the escape pnts
-  escape.pnts <- escape_points(area.evac,area.region,rds)
+  # produce the escape pnts for the region
+  escape.pnts <- project(escape.pnts,crs(dem))
+  escape.pnts <- crop(escape.pnts,ext(area.region))
   
   # create escape areas within 5 meters of the escape points
-  escape.poly <- buffer(escape.pnts,5)
+  escape.poly <- buffer(escape.pnts,20)
   escape.poly <- aggregate(escape.poly)
-  
-  # buffer the roads and combine with escape areas
-  rds.buffer <- buffer(rds, 5)
-  rds.grid <- crop(rds.buffer,area.region)
-  rds.grid <- rbind(rds.grid,escape.poly)
-  rds.grid <- aggregate(rds.grid)
-  
-  # crop dem to roads
-  rds.dem <- crop(dem,rds.grid,mask=TRUE)
+
+  # merge the escape area to the roads
+  escape.r <- rasterize(escape.poly,dem)
+  rds.dem <- merge(dem,escape.r)
   
   # conductance matrix for least cost path analysis
   cs <- create_slope_cs(rds.dem)
   
+  # create a grid evac zone
   # convert the road network into points
-  rds.pnts <- as.points(rds)
-  rds.pnts <- crop(rds.pnts,area.study)
-  rds.pnts <- crds(rds.pnts,df=TRUE)
+  grid.evac <- rast(ext=ext(area.study),
+                    crs=crs(area.study),
+                    resolution=50,vals=1)
+  rds.buffer <- buffer(rds.subset, 5)
+  grid.rds <- crop(grid.evac, rds.buffer, mask=TRUE)
+  grid.rds <- as.polygons(grid.rds, aggregate=FALSE)
+  grid.rds <- intersect(grid.rds, rds.buffer)
+  grid.rds <- crop(grid.rds, area.study)
+  
+  # convert the road network into points
+  rds.pnts <- centroids(grid.rds)
+  rds.pnts <- crds(rds.pnts, df=TRUE)
   rds.pnts <- vect(rds.pnts, geom=c("x", "y"), crs=crs(dem))
   
   # extract a random sample from the road points
-  set.seed(23401)
-  if (length(rds.pnts) < fraction){
-    fraction <- length(rds.pnts)
-  } else {fraction <- fraction}
-  rds.pnts <- sample(rds.pnts,fraction)
 
-  # create a roads from the rds buffer and grid evac zone
-  grid.evac <- project(grid.evac,crs(dem))
-  grid.rds <- intersect(grid.evac, rds.buffer)
-  grid.rds <- crop(grid.rds,area.study)
-  grid.rds$Municipio <- municipality
+  if (is.null(fraction) == FALSE){
+    if(fraction < length(rds.pnts)){
+      set.seed(23401)
+      rds.pnts <- sample(rds.pnts,fraction)
+      print("Fraction used.")
+    }
+    else{
+      print(paste0("Total points ",length(rds.pnts)," used."))
+      }
+  }
 
   # least cost path analysis
   minDist.pnts <- min_dist(cs, rds.pnts, escape.pnts)
   
-  # interpolation of minimum distance to a raster
-  dist.grid <- distance_grid(minDist.pnts,area.region,
-                             area.study,res.1 = 10,res.2 = rs)
+  # crop by the study area
+  minDist.pnts <- crop(minDist.pnts,buffer(area.study,10))
   
-  # extract the points from the raster
-  dist.vals <- extract(dist.grid,grid.rds,fun=min,method='simple')
-  grid.rds$DistToSafety <- as.integer(dist.vals[,2]) # meters
-  grid.rds[is.na(grid.rds$DistToSafety) == TRUE,] <- 0
+  # voronai polygons
+  v <- voronoi(minDist.pnts)
+  v$time <- as.numeric(v$distance) * (1/1.22) * (1/60)
+  v$muni <- municipality
+  v <- v[,c('muni','distance','time')]
+  names(v) <- c("Municipio","DistToSafety","EvacTimeAvg")
   
-  # calculate the evacuation time
-  grid.rds$EvacTimeAvg <- grid.rds$DistToSafety * (1/1.22) * (1/60) # minutes
-
-  grid.rds <- grid.rds[,c("Municipio","DistToSafety","EvacTimeAvg")]
+  # crop to the rds.buffer
+  rds.buffer <- erase(rds.buffer)
+  rds.buffer <- crop(rds.buffer,area.study)
+  v <- crop(v,rds.buffer)
   
   # reproject into desired crs
-  grid.rds <- project(grid.rds,crs)
+  minDist.pnts <- project(minDist.pnts,crs)
+  v <- project(v,crs)
+  
+  sv_collection <- c(minDist.pnts,v)
 
-  return(grid.rds)
+  return(sv_collection)
 }
+

@@ -9,7 +9,7 @@
 # network <- roads
 # area.region <- study region (greater area)
 
-escape_points <- function(area.evac,area.region,network){
+escape_points <- function(area.evac,network,area.study=NULL){
   area.evac <- aggregate(area.evac)
   area.evac <- as.lines(area.evac)
   network <- as.lines(network)
@@ -22,8 +22,11 @@ escape_points <- function(area.evac,area.region,network){
   escape <- crds(escape,df=TRUE)
   escape <- vect(escape, geom=c("x", "y"), crs=crs(area.evac))
   
-  # crop to region extent
-  escape <- crop(escape,area.region,ext=TRUE)
+  if (is.null(area.study) == FALSE){
+    area.region <- region_area(area.evac,area.study)
+    # crop to region extent
+    escape <- crop(escape,area.region,ext=TRUE)
+  }
   
   return(escape)
 }

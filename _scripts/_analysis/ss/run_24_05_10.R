@@ -4,18 +4,19 @@
 ## requires:
 # for macOS
 # ### load libraries
-source('~/Documents/Projects/PRSN/Data/R/Evacuation Time Analysis/01_libraries.R')
+source('_scripts/00_libraries.R')
 # 
 # ### load functions
-source('~/Documents/Projects/PRSN/Data/R/Evacuation Time Analysis/02_func_00_region_area.R')
-source('~/Documents/Projects/PRSN/Data/R/Evacuation Time Analysis/02_func_01_region_area.R')
-source('~/Documents/Projects/PRSN/Data/R/Evacuation Time Analysis/02_func_02_escape_points.R')
-source('~/Documents/Projects/PRSN/Data/R/Evacuation Time Analysis/02_func_03_minimum_distance.R')
-source('~/Documents/Projects/PRSN/Data/R/Evacuation Time Analysis/02_func_04_distance_grid.R')
-source('~/Documents/Projects/PRSN/Data/R/Evacuation Time Analysis/02_func_05_pea.R')
+source('_scripts/_functions/01_region_area.R')
+source('_scripts/_functions/02_escape_points.R')
+source('_scripts/_functions/03_calc_lc_path.R')
+source('_scripts/_functions/03_calc_min_distance.R')
+source('_scripts/_functions/03_minimum_distance.R')
+source('_scripts/_functions/04_distance_grid.R')
+source('_scripts/_functions/05_pea.R')
 
 # path inputs
-path.in <- '~/Documents/Projects/GIS/'
+path.in <- '~/Documents/Projects/PRSN/Data/GIS/'
 path.r <- paste0(path.in,'Raster/dem2/')
 path.v <- paste0(path.in,'Vector/')
 
@@ -26,14 +27,13 @@ crs2 <- 'epsg:4326' #wgs 84
 # evacuation area
 area.evac <- vect(paste0(path.v,'poly_zono_desalojo.shp'))
 
-# grid evacuation area
-# grid <- evacuation_grid(area.evac, 50)
-# writeVector(grid,paste0(path.v,'poly_grid.shp'))
 grid.evac <- vect(paste0(path.v,'poly_grid.shp'))
 
 # split cabo rojo into divisions 
 cabo.rojo <- vect(paste0(path.v,'caborojo_divisions.shp'))
-
+cabo.rojo <- terra::project(cabo.rojo,area.evac)
+plot(cabo.rojo)
+plot(area.evac,add=TRUE,col='blue')
 # add Municipio field
 cabo.rojo$Municipio <- paste0('Cabo Rojo_',cabo.rojo$id)
 
