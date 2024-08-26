@@ -14,6 +14,7 @@ region_area <- function(area.evac, area.study){
   buff <- buffer(area.study, 5000)
   buff <- aggregate(buff,dissolve=TRUE)
   area.region <- crop(area.region,buff)
+  area.region <- erase(area.region)
   return(area.region)
 }
 

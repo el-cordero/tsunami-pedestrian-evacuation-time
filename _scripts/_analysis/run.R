@@ -61,8 +61,11 @@ area.evac <- rbind(area.evac,cabo.rojo.mask)
 
 # roads
 rds <- vect(paste0(path.v,'road_pr.shp'))
+bridges <- rds[(rds$bridge == 'yes') & 
+                 (rds$highway %in% c('service','tertiary')),]
 rds <- rds[!(rds$highway %in% c('track','path','service',
                                 'footway','cycleway')),]
+rds <- rbind(rds,bridges)
 
 # evacuation grid polygon
 grid.evac <- vect(paste0(path.v,'poly_grid.shp'))
@@ -90,7 +93,7 @@ dem.list <- dem.list[!dem.list %in% missing.dems]
 # make a list of the municipalities
 # remove the municipalities removed from the raster list
 missing.muni <- c("Cabo Rojo","Canóvanas","Ceiba","Humacao","Quebradillas","Vieques","Yauco")
-municipalities <- sort(unique(area.evac$Municipio))
+municipalities <- sort(unique(area.evac$Municipio2))
 municipalities <- municipalities[!municipalities %in% missing.muni]
 
 # municipality-specific evac zone
@@ -107,8 +110,8 @@ escape.pnts <- vect('~/Documents/Projects/PRSN/Data/GIS/Vector/escape_pnts_PR_ed
 # fraction <- 1500 # arecibo?
 
 # Run on the pa grid function on each municipality
+# for (i in 1:length(dem.list)){
 for (i in 1:length(dem.list)){
-# for (i in 2:length(dem.list)){
   startTime <- Sys.time()
   dem <- rast(paste0(path.r,dem.list[i]))
   pa.grid <- pa_grid(area.evac, dem, rds, escape.pnts, 
@@ -123,12 +126,29 @@ for (i in 1:length(dem.list)){
   cat(outputMsg, file = paste0(municipalities[i],".txt"))
 }
 
+# Run on the pa grid function on each municipality that is missing
+# try one by one because some cause the software to crash
+for (i in 4:length(missing.dems)){
+  startTime <- Sys.time()
+  dem <- rast(paste0(path.r,missing.dems[i]))
+  pa.grid <- pa_grid(area.evac, dem, rds, escape.pnts, 
+                     missing.muni[i],fraction=NULL, crs, rs=5)
+  file.name <- paste0(path.v,'Pedestrian/',missing.muni[i]) 
+  writeVector(pa.grid[1],paste0(file.name,'_pnts.shp'),overwrite=TRUE)
+  writeVector(pa.grid[2],paste0(file.name,'.shp'),overwrite=TRUE)
+  endTime <- Sys.time()
+  outputMsg <- paste(missing.muni[i],startTime,endTime,
+                     length(pa.grid[1]),sep=',')
+  print(outputMsg)
+  cat(outputMsg, file = paste0(missing.muni[i],".txt"))
+}
+
 # Run on the pa grid function on Cabo Rojo
 
-dem <- rast(paste0(path.r,'dem_caborojo.tif'))
+
 for (i in 1:length(cabo.rojo$Municipio)){
   startTime <- Sys.time()
-  dem <- rast(paste0(path.r,dem.list[i]))
+  dem <- rast(paste0(path.r,'dem_caborojo.tif'))  
   pa.grid <- pa_grid(area.evac, dem, rds, escape.pnts, 
                      cabo.rojo$Municipio[i],fraction=NULL, crs, rs=5)
   file.name <- paste0(path.v,'Pedestrian/CR/',cabo.rojo$Municipio[i]) 
@@ -141,34 +161,30 @@ for (i in 1:length(cabo.rojo$Municipio)){
   cat(outputMsg, file = paste0(cabo.rojo$Municipio[i],".txt"))
 }
 
-# for (i in c(13,37)){
-# startTime <- Sys.time()
-# pa.grid <- pa_grid(area.evac, dem, rds, grid.evac,
-#                    cabo.rojo$Municipio[i],fraction, crs)
-# file.name <- paste0(path.v,'Pedestrian/CR/',cabo.rojo$Municipio[i],'.shp')
-# writeVector(pa.grid,file.name,overwrite=TRUE)
-# endTime <- Sys.time()
-# outputMsg <- paste(cabo.rojo$Municipio[i],startTime,endTime,sep=',')
-# print(outputMsg)
-# cat(outputMsg, file = paste0('Timestamps/',cabo.rojo$Municipio[i],".txt"))
-
 # run the analysis for Cabo Rojo only
-cr.grid <- vect(paste0(path.v,'Pedestrian/',cabo.rojo$Municipio[1],'.shp'))
+cr.grid <- vect(paste0(path.v,'Pedestrian/CR/',cabo.rojo$Municipio[1],'.shp'))
 for (i in 2:length(cabo.rojo$Municipio)){
-  cr.grid.2 <- vect(paste0(path.v,'Pedestrian/',cabo.rojo$Municipio[i],'.shp'))
+  cr.grid.2 <- vect(paste0(path.v,'Pedestrian/CR/',cabo.rojo$Municipio[i],'.shp'))
   cr.grid <- rbind(cr.grid,cr.grid.2)
 }
-
+cr.grid$Municipio <- 'Cabo Rojo'
 file.name <- paste0(path.v,'Pedestrian/','Cabo Rojo','.shp')
+writeVector(cr.grid,file.name,overwrite=TRUE)
+
+cr.grid <- vect(paste0(path.v,'Pedestrian/CR/',cabo.rojo$Municipio[1],'_pnts.shp'))
+for (i in 2:length(cabo.rojo$Municipio)){
+  cr.grid.2 <- vect(paste0(path.v,'Pedestrian/CR/',cabo.rojo$Municipio[i],'_pnts.shp'))
+  cr.grid <- rbind(cr.grid,cr.grid.2)
+}
+cr.grid$Municipio <- 'Cabo Rojo'
+file.name <- paste0(path.v,'Pedestrian/','Cabo Rojo','_pnts.shp')
 writeVector(cr.grid,file.name,overwrite=TRUE)
 
 # combine files
 all.names = list.files(path = paste0(path.v,'Pedestrian/'),full.names=FALSE)
-all.names <- unlist(strsplit(all.names,'[.]'))
-filetypes <- c("prj","cpg","shp","dbf","shx")
-all.names <- unique(all.names[!all.names %in% filetypes])
-all.names <- paste0(all.names,'.shp')
-all.names <- all.names[all.names != "CR.shp"] # remove CR folder
+all.names <- all.names[grepl("\\.shp$", all.names)]
+pnts.names <- all.names[grepl("_pnts\\.shp$", all.names)]
+all.names <- all.names[!all.names %in% pnts.names]
 
 # open the first file
 pa.grid <- vect(paste0(path.v,paste0('Pedestrian/',all.names[1])))
@@ -179,11 +195,25 @@ for (i in c(2:length(all.names))){
   pa.grid <- rbind(pa.grid,pa.grid.2)
 }
 
-# ? remove 0 Municipality layer?
-pa.grid <- pa.grid[pa.grid$Municipio != "0",]
-
 # save the file into one
 writeVector(pa.grid,paste0(path.v,'PRpeat.shp'),overwrite=TRUE)
 
 pa.grid <- terra::project(pa.grid,crs2)
 writeVector(pa.grid,paste0(path.v,'PRpeatWGS84.shp'),overwrite=TRUE)
+
+# open the first file
+pa.grid.pnts <- vect(paste0(path.v,paste0('Pedestrian/',pnts.names[1])))
+pa.grid.pnts$Municipio <- sub("_pnts\\.shp$", "", pnts.names[1])
+
+# combine with the other files
+for (i in c(2:length(pnts.names))){
+  pa.grid.pnts.2 <- vect(paste0(path.v,paste0('Pedestrian/',pnts.names[i])))
+  pa.grid.pnts.2$Municipio <- sub("_pnts\\.shp$", "", pnts.names[i])
+  pa.grid.pnts <- rbind(pa.grid.pnts,pa.grid.pnts.2)
+}
+
+# save the file into one
+writeVector(pa.grid.pnts,paste0(path.v,'PRpeat_pnts.shp'),overwrite=TRUE)
+
+pa.grid <- terra::project(pa.grid,crs2)
+writeVector(pa.grid.pnts,paste0(path.v,'PRpeatWGS84_pnts.shp'),overwrite=TRUE)

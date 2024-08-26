@@ -60,7 +60,7 @@ pa_grid <- function(area.evac, dem, rds, escape.pnts,
   # convert the road network into points
   rds.pnts <- centroids(grid.rds)
   rds.pnts <- crds(rds.pnts, df=TRUE)
-  rds.pnts <- vect(rds.pnts, geom=c("x", "y"), crs=crs(dem))
+  rds.pnts <- vect(rds.pnts, geom=c("x", "y"), crs=crs(grid.rds))
   
   # extract a random sample from the road points
 
@@ -89,7 +89,8 @@ pa_grid <- function(area.evac, dem, rds, escape.pnts,
   names(v) <- c("Municipio","DistToSafety","EvacTimeAvg")
   
   # crop to the rds.buffer
-  rds.buffer <- erase(rds.buffer)
+  rds.buffer <- aggregate(rds.buffer)
+  rds.buffer <- erase(rds.buffer); area.study <- erase(area.study)
   rds.buffer <- crop(rds.buffer,area.study)
   v <- crop(v,rds.buffer)
   
