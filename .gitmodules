@@ -1,3 +1,5 @@
 [submodule "/Users/EC13/Documents/Projects/PRSN/Tsunami Pedestrian Evacuation Time/_documentation"]
 	path = /Users/EC13/Documents/Projects/PRSN/Tsunami Pedestrian Evacuation Time/_documentation
 	url = https://github.com/el-cordero/tsunami-pedestrian-evacuation-time-doc.git
+[submodule "_documentation"]
+	url = https://github.com/el-cordero/tsunami-pedestrian-evacuation-time-doc.git
