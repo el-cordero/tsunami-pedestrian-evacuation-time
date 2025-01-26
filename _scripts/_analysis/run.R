@@ -27,8 +27,6 @@ crs2 <- 'epsg:4326' #wgs 84
 # evacuation area
 area.evac <- vect(paste0(path.v,'poly_zono_desalojo.shp'))
 
-grid.evac <- vect(paste0(path.v,'poly_grid.shp'))
-
 # split cabo rojo into divisions 
 cabo.rojo <- vect(paste0(path.v,'caborojo_divisions.shp'))
 cabo.rojo <- terra::project(cabo.rojo,area.evac)
@@ -67,9 +65,6 @@ rds <- rds[!(rds$highway %in% c('track','path','service',
                                 'footway','cycleway')),]
 rds <- rbind(rds,bridges)
 
-# evacuation grid polygon
-grid.evac <- vect(paste0(path.v,'poly_grid.shp'))
-
 # create a file list of dems
 dem.list <- c('dem_aguada.tif','dem_aguadilla.tif','dem_anasco.tif','dem_arecibo.tif',
 'dem_arroyo.tif','dem_barc.tif','dem_bayamon.tif','dem_caborojo.tif',
@@ -102,7 +97,7 @@ area.evac <- project(area.evac,crs(rds))
 # produce the escape pnts
 # escape.pnts <- escape_points(area.evac,rds)
 # writeVector(escape.pnts, '~/Documents/Projects/PRSN/Data/GIS/Vector/escape_pnts_PR.shp')
-escape.pnts <- vect('~/Documents/Projects/PRSN/Data/GIS/Vector/escape_pnts_PR_edited.shp')
+escape.pnts <- vect(paste0(path.v,'escape_pnts_PR_edited.shp'))
 
 # What fraction of road points to use?
 # fraction <- 500 # 1000 was used for all municipalities except
@@ -215,5 +210,5 @@ for (i in c(2:length(pnts.names))){
 # save the file into one
 writeVector(pa.grid.pnts,paste0(path.v,'PRpeat_pnts.shp'),overwrite=TRUE)
 
-pa.grid <- terra::project(pa.grid,crs2)
+pa.grid.pnts <- terra::project(pa.grid.pnts,crs2)
 writeVector(pa.grid.pnts,paste0(path.v,'PRpeatWGS84_pnts.shp'),overwrite=TRUE)
